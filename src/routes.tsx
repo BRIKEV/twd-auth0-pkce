@@ -1,24 +1,19 @@
 import { createBrowserRouter } from "react-router";
 import App from "./pages/App/App";
-import Loading from "./pages/App/Loading";
-import { loaderApp } from "./pages/App/loader";
-import { actionApp } from "./pages/App/actions";
 import LoginPage from "./pages/Login/Login";
-import { loaderLogin } from "./pages/Login/loader";
+import PrivateRoute from "./components/PrivateRoute";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    HydrateFallback: Loading,
-    loader: loaderApp,
-    action: actionApp,
-    element: <App />,
+    element: (
+      <PrivateRoute>
+        <App />
+      </PrivateRoute>
+    ),
   },
   {
     path: "/login",
-    HydrateFallback: Loading,
     element: <LoginPage />,
-    loader: loaderLogin,
   },
   {
     path: '*',

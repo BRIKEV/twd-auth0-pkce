@@ -1,4 +1,4 @@
-import { useFetcher } from "react-router";
+import { useState } from "react";
 import type { Note } from "@/api/notes";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
@@ -6,15 +6,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 interface NotesProps {
   notes: Note[];
   disabled?: boolean;
+  onCreateNote: (title: string, content: string) => Promise<void>;
 }
 
-export function NotesPanel({ notes, disabled }: NotesProps) {
-  const fetcher = useFetcher();
+export function NotesPanel({ notes, disabled, onCreateNote }: NotesProps) {
+  const [isSaving, setIsSaving] = useState(false);
 
-  const isSaving = fetcher.state === "submitting" || fetcher.state === "loading";
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    fetcher.submit(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const title = String(formData.get("title") ?? "").trim();
+    const content = String(formData.get("content") ?? "");
+
+    if (!title) return;
+
+    setIsSaving(true);
+    try {
+      await onCreateNote(title, content);
+      form.reset();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -30,14 +43,14 @@ export function NotesPanel({ notes, disabled }: NotesProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <fetcher.Form method="post" className="space-y-3" onSubmit={onSubmit}>
-          <input type="hidden" name="_action" value="create-note" />
+        <form className="space-y-3" onSubmit={onSubmit}>
           <input
             className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-300/60 focus:border-cyan-300/60 focus:outline-none"
             placeholder="Note title"
             name="title"
             disabled={disabled || isSaving}
             required
+            autoComplete="off"
           />
           <textarea
             className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-300/60 focus:border-cyan-300/60 focus:outline-none"
@@ -45,6 +58,7 @@ export function NotesPanel({ notes, disabled }: NotesProps) {
             placeholder="Optional content"
             name="content"
             disabled={disabled || isSaving}
+            autoComplete="off"
           />
           <Button
             size="lg"
@@ -54,7 +68,7 @@ export function NotesPanel({ notes, disabled }: NotesProps) {
           >
             {isSaving ? "Saving..." : "Add note"}
           </Button>
-        </fetcher.Form>
+        </form>
 
         <div className="space-y-3">
           {notes.length === 0 ? (

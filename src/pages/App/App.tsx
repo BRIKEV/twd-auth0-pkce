@@ -1,7 +1,9 @@
-import { useLoaderData } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import LogoutButton from '../../components/LogoutButton';
 import Profile from '../../components/Profile';
 import { NotesPanel } from '../../components/Notes';
+import { fetchNotes, createNote, type Note } from '@/api/notes';
 import {
   Card,
   CardContent,
@@ -10,10 +12,23 @@ import {
   CardHeader,
   CardTitle,
 } from '../../components/ui/card';
-import type { loaderApp } from './loader';
 
 function App() {
-  const { user, notes } = useLoaderData<typeof loaderApp>();
+  const { user } = useAuth0();
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  const refreshNotes = () => fetchNotes().then(setNotes).catch(console.error);
+
+  useEffect(() => {
+    refreshNotes();
+  }, []);
+
+  const handleCreateNote = async (title: string, content: string) => {
+    await createNote({ title, content });
+    await refreshNotes();
+  };
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -62,7 +77,7 @@ function App() {
             </CardFooter>
           </Card>
 
-          <NotesPanel notes={notes} />
+          <NotesPanel notes={notes} onCreateNote={handleCreateNote} />
         </div>
       </div>
     </div>
