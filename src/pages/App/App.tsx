@@ -14,18 +14,33 @@ import {
 } from '../../components/ui/card';
 
 function App() {
-  const { user } = useAuth0();
+  const { user, getAccessTokenSilently } = useAuth0();
   const [notes, setNotes] = useState<Note[]>([]);
 
-  const refreshNotes = () => fetchNotes().then(setNotes).catch(console.error);
 
   useEffect(() => {
+    const refreshNotes = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const data = await fetchNotes(token);
+        setNotes(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
     refreshNotes();
-  }, []);
+  }, [getAccessTokenSilently]);
 
   const handleCreateNote = async (title: string, content: string) => {
-    await createNote({ title, content });
-    await refreshNotes();
+    const token = await getAccessTokenSilently();
+    await createNote(token, { title, content });
+    try {
+      const token = await getAccessTokenSilently();
+      const data = await fetchNotes(token);
+      setNotes(data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   if (!user) return null;
@@ -56,7 +71,7 @@ function App() {
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-100/80">Auth0</span>
               </CardTitle>
               <CardDescription className="text-slate-200/80">
-                Signed in successfully. Your session is handled by the BFF.
+                Signed in successfully. Your session is handled by Auth0 PKCE.
               </CardDescription>
             </CardHeader>
 

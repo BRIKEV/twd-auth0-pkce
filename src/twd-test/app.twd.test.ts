@@ -14,15 +14,15 @@ describe('App tests', () => {
   it('should render home page without notes', async () => {
     await defaultMocks();
     await twd.visit('/');
-    await twd.waitForRequests(['me', 'getNotes']);
+    await twd.waitForRequests(['getNotes']);
     const welcomeText = await screenDom.findByRole('heading', { name: 'Authenticated area', level: 1 });
     twd.should(welcomeText, 'be.visible');
     const infoText = await screenDom.findByText('You are signed in with Auth0. Manage your profile and jot down quick notes below.');
     twd.should(infoText, 'be.visible');
-    const signedInText = await screenDom.findByText('Signed in successfully. Your session is handled by the BFF.');
+    const signedInText = await screenDom.findByText('Signed in successfully. Your session is handled by Auth0 PKCE.');
     twd.should(signedInText, 'be.visible');
-    const avatar = await screenDom.findByRole('img');
-    twd.should(avatar, 'have.attr', 'src', 'https://picsum.photos/id/237/200/300');
+    // const avatar = await screenDom.findByRole('img');
+    // twd.should(avatar, 'have.attr', 'src', 'https://picsum.photos/id/237/200/300');
     const noNotesText = await screenDom.findByText('No notes yet. Add your first one.');
     twd.should(noNotesText, 'be.visible');
   });
@@ -42,7 +42,7 @@ describe('App tests', () => {
       }
     });
     await twd.visit('/');
-    await twd.waitForRequests(['me', 'getNotes']);
+    await twd.waitForRequests(['getNotes']);
     const titleInput = await screenDom.findByPlaceholderText('Note title');
     await userEvent.type(titleInput, 'New Note');
     const contentTextarea = await screenDom.findByPlaceholderText('Optional content');

@@ -1,47 +1,40 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
+import { auth } from "express-oauth2-jwt-bearer";
 import { db } from "../db/client";
 import { notes, users } from "../db/schema";
+import { env } from "../env";
 
 const notesRouter = Router();
 
-function requireSessionUser(req: Request, res: Response, next: NextFunction) {
-  if (!req.session?.user) {
-    return res.sendStatus(401);
-  }
-  next();
-}
+// Validate Access Tokens using JWKS
+const checkJwt = auth({
+  audience: env.auth0.audience,
+  issuerBaseURL: `https://${env.auth0.domain}/`,
+  tokenSigningAlg: 'RS256'
+});
 
-async function ensureUserRecord(sessionUser: { id: string; name?: string; email?: string; picture?: string }) {
+async function ensureUserRecord(userId: string) {
+  // We only get the sub (userId) from the access token. 
+  // We rely on the frontend ID token for profile info display.
+  // We just need to make sure the user exists for FK constraints.
   await db
     .insert(users)
-    .values({
-      id: sessionUser.id,
-      name: sessionUser.name,
-      email: sessionUser.email,
-      picture: sessionUser.picture,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        name: sessionUser.name,
-        email: sessionUser.email,
-        picture: sessionUser.picture,
-      },
-    });
+    .values({ id: userId })
+    .onConflictDoNothing();
 }
 
-notesRouter.use(requireSessionUser);
+notesRouter.use(checkJwt);
 
 notesRouter.get("/", async (req, res, next) => {
   try {
-    const user = req.session.user!;
-    await ensureUserRecord(user);
+    const userId = req.auth!.payload.sub!;
+    await ensureUserRecord(userId);
 
     const data = await db
       .select()
       .from(notes)
-      .where(eq(notes.userId, user.id))
+      .where(eq(notes.userId, userId))
       .orderBy(desc(notes.createdAt), desc(notes.id));
 
     res.json({ notes: data });
@@ -52,8 +45,8 @@ notesRouter.get("/", async (req, res, next) => {
 
 notesRouter.post("/", async (req, res, next) => {
   try {
-    const user = req.session.user!;
-    await ensureUserRecord(user);
+    const userId = req.auth!.payload.sub!;
+    await ensureUserRecord(userId);
 
     const { title, content } = req.body ?? {};
 
@@ -64,7 +57,7 @@ notesRouter.post("/", async (req, res, next) => {
     const [inserted] = await db
       .insert(notes)
       .values({
-        userId: user.id,
+        userId: userId,
         title: title.trim(),
         content: typeof content === "string" ? content : "",
       })

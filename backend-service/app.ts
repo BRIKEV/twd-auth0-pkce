@@ -1,29 +1,10 @@
 import express from "express";
 import path from "path";
-import { sessionMiddleware } from "./session";
-import { authRouter } from "./routes/auth";
 import { notesRouter } from "./routes/notes";
 
 const app = express();
 
-app.use(sessionMiddleware);
 app.use(express.json());
-
-/**
- * Auth routes
- */
-app.use("/auth", authRouter);
-
-/**
- * Session user info endpoint
- */
-app.get("/api/me", (req, res) => {
-  if (!req.session.user) {
-    return res.sendStatus(401);
-  }
-
-  res.json(req.session.user);
-});
 
 /**
  * Notes (protected)
