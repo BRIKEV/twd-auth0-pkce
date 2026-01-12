@@ -18,7 +18,6 @@ describe('App tests', () => {
   });
 
   it('should render home page without notes', async () => {
-    console.log(authSession);
     Sinon.stub(authSession, 'useAuth').returns({
       isAuthenticated: true,
       isLoading: false,
