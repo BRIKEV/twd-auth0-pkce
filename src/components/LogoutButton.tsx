@@ -1,8 +1,8 @@
-import { useAuth0 } from "@auth0/auth0-react";
+import Auth from "@/hooks/useAuth";
 import { Button } from "./ui/button";
 
 const LogoutButton = () => {
-  const { logout } = useAuth0();
+  const { logout } = Auth.useAuth();
   return (
     <Button
       variant="outline"

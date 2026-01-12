@@ -1,9 +1,9 @@
-import { useAuth0 } from "@auth0/auth0-react";
+import Auth from "@/hooks/useAuth";
 import { Navigate } from "react-router";
 import Loading from "@/pages/App/Loading";
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth0();
+  const { isAuthenticated, isLoading } = Auth.useAuth();
 
   if (isLoading) {
     return <Loading />;

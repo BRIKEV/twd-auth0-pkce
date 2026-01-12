@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
+import Auth from '@/hooks/useAuth';
 import LogoutButton from '../../components/LogoutButton';
 import Profile from '../../components/Profile';
 import { NotesPanel } from '../../components/Notes';
@@ -14,9 +14,8 @@ import {
 } from '../../components/ui/card';
 
 function App() {
-  const { user, getAccessTokenSilently } = useAuth0();
+  const { user, getAccessTokenSilently } = Auth.useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
-
 
   useEffect(() => {
     const refreshNotes = async () => {

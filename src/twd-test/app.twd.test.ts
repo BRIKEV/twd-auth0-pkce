@@ -1,9 +1,15 @@
 import { beforeEach, describe, it, afterEach } from 'twd-js/runner';
 import { twd, screenDom, userEvent, expect } from 'twd-js';
 import { defaultMocks } from './authUtils';
+import authSession from '../hooks/useAuth';
+import Sinon from 'sinon';
+import userMock from './userMock.json';
+import type { Auth0ContextInterface } from '@auth0/auth0-react';
 
 describe('App tests', () => {
   beforeEach(() => {
+    Sinon.resetHistory();
+    Sinon.restore();
     twd.clearRequestMockRules();
   });
 
@@ -12,6 +18,15 @@ describe('App tests', () => {
   });
 
   it('should render home page without notes', async () => {
+    console.log(authSession);
+    Sinon.stub(authSession, 'useAuth').returns({
+      isAuthenticated: true,
+      isLoading: false,
+      user: userMock,
+      getAccessTokenSilently: Sinon.stub().resolves('fake-token'),
+      loginWithRedirect: Sinon.stub().resolves(),
+      logout: Sinon.stub().resolves(),
+    } as unknown as Auth0ContextInterface);
     await defaultMocks();
     await twd.visit('/');
     await twd.waitForRequests(['getNotes']);
@@ -28,6 +43,14 @@ describe('App tests', () => {
   });
 
   it('should add a new note', async () => {
+    Sinon.stub(authSession, 'useAuth').returns({
+      isAuthenticated: true,
+      isLoading: false,
+      user: userMock,
+      getAccessTokenSilently: Sinon.stub().resolves('fake-token'),
+      loginWithRedirect: Sinon.stub().resolves(),
+      logout: Sinon.stub().resolves(),
+    } as unknown as Auth0ContextInterface);
     await defaultMocks();
     await twd.mockRequest('createNote', {
       url: '/api/notes',
@@ -36,7 +59,7 @@ describe('App tests', () => {
       response: {
         id: 2,
         createdAt: 16825152,
-        userId: "google-oauth2|105933711246534696582",
+        userId: userMock.sub,
         title: "New Note",
         content: "This is a new note."
       }
