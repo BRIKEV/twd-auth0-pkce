@@ -5,6 +5,7 @@ import PrivateRoute from "./components/PrivateRoute";
 
 const router = createBrowserRouter([
   {
+    path: "/",
     element: (
       <PrivateRoute>
         <App />
