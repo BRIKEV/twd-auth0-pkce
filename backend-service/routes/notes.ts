@@ -1,18 +1,10 @@
 import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
-import { auth } from "express-oauth2-jwt-bearer";
 import { db } from "../db/client";
 import { notes, users } from "../db/schema";
-import { env } from "../env";
+import { checkJwt } from "../auth/checkJwt";
 
 const notesRouter = Router();
-
-// Validate Access Tokens using JWKS
-const checkJwt = auth({
-  audience: env.auth0.audience,
-  issuerBaseURL: `https://${env.auth0.domain}/`,
-  tokenSigningAlg: 'RS256'
-});
 
 async function ensureUserRecord(userId: string) {
   // We only get the sub (userId) from the access token. 
