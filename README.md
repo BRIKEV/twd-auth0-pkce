@@ -1,49 +1,43 @@
-# TWD Auth0 – A Modern Learning Project for Auth & Testing Innovation
+# TWD Auth0 – PKCE Flow & Testing Showcase
 
-**Test While Developing (TWD)**: An in-browser testing approach that validates full user workflows in real time. Combined with a secure BFF (Backend For Frontend) auth pattern, this project demonstrates production-grade authentication and testing practices.
+**Test While Developing (TWD)**: An in-browser testing approach that validates full user workflows in real time. This project demonstrates a production-grade **Auth0 PKCE** flow (Frontend-only Auth) and how to easily test it without complex E2E setups.
 
 ## 📚 Architecture
 
-### Backend (BFF)
+### Frontend (React + Auth0 PKCE)
+The application uses **Auth0 React SDK** to authenticate users directly in the browser using the **PKCE flow**.
+- **`useAuth` Hook**: A centralized hook wrapping `useAuth0` for easy mocking.
+- **State Management**: React state handles data, while auth state is managed by the SDK.
+- **API Client**: Attaches the Access Token to requests via `Authorization: Bearer` header.
 
-```
-backend-service/
-├── routes/
-│   ├── auth.ts          # OAuth2 login/callback/logout
-│   └── notes.ts         # Protected API (requires session)
-├── db/
-│   ├── schema.ts        # Users + Notes tables with relations
-│   └── client.ts        # Drizzle + LibSQL
-├── session.ts           # HttpOnly cookie config
-└── tests/
-    ├── auth.test.ts     # Full OAuth flow validation
-    └── notes.test.ts    # Protected API + user isolation
-```
+### Backend (Stateless API)
+The backend is a simple API that validates JWTs.
+- **Middleware**: `express-oauth2-jwt-bearer` verifies tokens against Auth0 JWKS.
+- **Database**: Drizzle ORM + LibSQL.
+- **Stateless**: No sessions or cookies required.
 
-**Key insight**: The session cookie is **HttpOnly** and **SameSite=Lax**, so the frontend never sees tokens. The loader just calls `/api/me` to check if authenticated.
+## ✨ TWD Auth0 Mocking Showcase
 
-### Frontend (React Router v7)
+This project demonstrates how to **Test While Developing (TWD)** with complex authentication flows.
+Instead of struggling with slow E2E login scripts, we simply **mock the auth hook** directly in the browser using `Sinon`.
 
-```
-src/
-├── pages/
-│   ├── App/
-│   │   ├── loader.ts    # Fetches session + notes (redirects if 401)
-│   │   ├── actions.ts   # Form submission (create note via useFetcher)
-│   │   └── App.tsx      # Authenticated user home
-│   └── Login/
-│       └── loader.ts    # Redirects auth users back to /
-├── api/
-│   ├── client.ts        # Axios instance with credentials
-│   ├── auth.ts          # getSession() helper
-│   └── notes.ts         # fetchNotes(), createNote() helpers
-├── components/
-│   └── Notes.tsx        # useFetcher form for notes
-└── twd-test/
-    ├── app.twd.test.ts  # Full user journey (profile + notes)
-    ├── login.twd.test.ts # Login redirect flow
-    └── authUtils.ts     # Mock auth state
-```
+Check out **[src/twd-test/app.twd.test.ts](src/twd-test/app.twd.test.ts)** to see:
+
+1. **Mocking the Auth Hook**:
+   ```typescript
+   import authSession from '../hooks/useAuth';
+   // ...
+   Sinon.stub(authSession, 'useAuth').returns({
+     isAuthenticated: true,
+     user: mockUser,
+     getAccessTokenSilently: Sinon.stub().resolves('fake-token'),
+     // ...
+   });
+   ```
+2. **Simulating User States**: Easily test "Loading", "Unauthenticated", or "Authenticated" states by changing the mock return value.
+3. **API Mocking**: Combined with `twd.mockRequest`, you simulate the entire backend interaction.
+
+**Benefit**: You get instant verification of your UI's protected areas without ever hitting the real Auth0 login page during tests.
 
 ## ✨ Testing Philosophy: TWD (Test While Developing)
 
@@ -94,62 +88,50 @@ describe("Notes App", () => {
 
 **What's being tested**: React Router action → useFetcher submission → API call → loader revalidation → DOM update. All real, all in the browser.
 
-## 🔐 Auth Flow
+## 🔐 Auth Flow (PKCE)
 
 ### 1. Unauthenticated User Visits `/`
 
 ```
-GET / (no session cookie)
+GET /
   ↓
-loaderApp checks /api/me → 401
+PrivateRoute checks `useAuth().isAuthenticated`
   ↓
-Redirect to /login
+If false, Redirect to /login
 ```
 
 ### 2. User Clicks "Log In"
 
 ```
-GET /auth/login
+/login renders
   ↓
-Redirect to Auth0 (with client_id, redirect_uri, state)
+User clicks "Log In" Button
+  ↓
+Auth0 SDK redirects to Auth0 Universal Login
 ```
 
 ### 3. Auth0 Redirects Back
 
 ```
-GET /auth/callback?code=xxx&state=yyy
+Redirect back to app with code
   ↓
-BFF exchanges code for tokens (server-side only)
+Auth0 SDK exchanges code for Tokens (Access + ID Token)
   ↓
-BFF creates session, sets HttpOnly cookie
-  ↓
-Redirect to / (with session cookie)
+App re-renders, `isAuthenticated` becomes true
 ```
 
-### 4. Home Page Loads
+### 4. Fetching Data
 
 ```
-GET / (with session cookie)
+App component mounts
   ↓
-loaderApp calls /api/me → 200 + user data
+Calls `getAccessTokenSilently()` to get token string
   ↓
-loaderApp calls /api/notes → 200 + user's notes
+Calls API with `Authorization: Bearer <token>`
   ↓
-Page renders with profile + notes
-```
-
-### 5. User Creates a Note
-
-```
-POST / (useFetcher form)
+Backend validates token signature & audience
   ↓
-actionApp receives FormData, calls POST /api/notes
-  ↓
-BFF checks session, validates user_id, inserts note
-  ↓
-actionApp returns note, router revalidates loaderApp
-  ↓
-DOM updates with new note
+Data returned
 ```
 
 ## 🚀 Quick Start
@@ -168,36 +150,38 @@ Set up `.env`:
 AUTH0_DOMAIN=your-tenant.auth0.com
 AUTH0_CLIENT_ID=xxxx
 AUTH0_CLIENT_SECRET=xxxx
-AUTH0_REDIRECT_URI=http://localhost:5173/auth/callback
+AUTH0_AUDIENCE=https://api.myapp.com  <-- NEW: API Identifier
 ```
 
 ### Frontend
 
 ```bash
 npm install
-npm run dev            # Starts on :5173 (proxies /auth and /api to :3000)
+npm run dev
 ```
 
-Visit `http://localhost:5173` and click "Log In" to start the OAuth flow.
+Set up `.env`:
+```env
+VITE_AUTH0_DOMAIN=your-tenant.auth0.com
+VITE_AUTH0_CLIENT_ID=xxxx
+VITE_AUTH0_AUDIENCE=https://api.myapp.com
+```
 
 ### Run Tests
 
 In the browser (`http://localhost:5173`):
 - Open DevTools console
-- TWD tests run in the sidebar; watch them pass in real time.
+- TWD tests run in the sidebar. Note how the Auth0 login is completely bypassed by our mocks!
 
 ## 🧪 Backend Tests (Node.js)
 
 ```bash
 cd backend-service
-npm test               # Runs Vitest with real SQLite
+npm test
 ```
 
-**Test highlights**:
-- `auth.test.ts`: Full OAuth flow (login redirect → callback → token exchange → session → logout).
-- `notes.test.ts`: Protected API (verify user isolation, CRUD).
-
 ## 🎓 Learning Goals
+
 
 By exploring this project, you'll understand:
 
@@ -209,12 +193,10 @@ By exploring this project, you'll understand:
 
 ## 📝 Key Files to Read
 
-1. **[backend-service/routes/auth.ts](backend-service/routes/auth.ts)** – Full OAuth implementation with session management.
-2. **[backend-service/routes/notes.ts](backend-service/routes/notes.ts)** – User-scoped API with session checks.
-3. **[src/pages/App/loader.ts](src/pages/App/loader.ts)** – Auth guard + data loader pattern.
-4. **[src/pages/App/actions.ts](src/pages/App/actions.ts)** – Form submission via React Router actions.
-5. **[src/twd-test/login.twd.test.ts](src/twd-test/login.twd.test.ts)** – Login workflow validation.
-6. **[src/twd-test/app.twd.test.ts](src/twd-test/app.twd.test.ts)** – Notes app workflow validation.
+1. **[backend-service/routes/notes.ts](backend-service/routes/notes.ts)** – User-scoped API with JWT validation (`checkJwt`).
+2. **[src/hooks/useAuth.ts](src/hooks/useAuth.ts)** – The Auth wrapper hook used for easy mocking.
+3. **[src/pages/App/App.tsx](src/pages/App/App.tsx)** – Authenticated view fetching data with tokens.
+4. **[src/twd-test/app.twd.test.ts](src/twd-test/app.twd.test.ts)** – **THE SHOWCASE**: How to mock `useAuth` to test authenticated flows.
 
 ## 📖 Resources
 
