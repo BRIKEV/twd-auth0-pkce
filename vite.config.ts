@@ -1,9 +1,10 @@
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 // add plugin for code coverage
 import istanbul from 'vite-plugin-istanbul';
+import { twdRemote } from 'twd-relay/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,6 +22,7 @@ export default defineConfig({
       extension: ['.ts', '.tsx'],
       requireEnv: true,
     }),
+    twdRemote() as PluginOption,
   ],
   server: {
     port: 5173,
