@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 // add plugin for code coverage
 import istanbul from 'vite-plugin-istanbul';
 import { twdRemote } from 'twd-relay/vite';
+import { twd } from 'twd-js/vite-plugin';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,6 +22,10 @@ export default defineConfig({
       exclude: ['node_modules', 'tests/'],
       extension: ['.ts', '.tsx'],
       requireEnv: true,
+    }),
+    twd({ 
+      open: false, 
+      position: 'left',
     }),
     twdRemote() as PluginOption,
   ],

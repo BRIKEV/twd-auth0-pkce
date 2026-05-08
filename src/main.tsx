@@ -5,25 +5,6 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import './index.css'
 import { router } from './routes'
 
-// Only load the test sidebar and tests in development mode
-if (import.meta.env.DEV) {
-  const { initTWD } = await import('twd-js/bundled');
-  const tests = import.meta.glob("./**/*.twd.test.ts");
-  
-  // Initialize TWD with tests and optional configuration
-  // Request mocking is automatically initialized by default
-  initTWD(tests, { 
-    open: false, 
-    position: 'left',
-    serviceWorker: true,           // Enable request mocking (default: true)
-    serviceWorkerUrl: '/mock-sw.js' // Custom service worker path (default: '/mock-sw.js')
-  });
-  const { createBrowserClient } = await import('twd-relay/browser');
-  const client = createBrowserClient();
-  client.connect();
-}
-
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Auth0Provider
