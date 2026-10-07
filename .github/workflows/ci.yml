@@ -1,0 +1,41 @@
+name: TWD Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Placeholders, not secrets: tests stub useAuth with Sinon and mock /api,
+      # so Auth0 is never dialled. They exist because <Auth0Provider> in
+      # src/main.tsx reads them at startup.
+      - name: Start dev server
+        run: |
+          nohup npm run dev:ci > vite.log 2>&1 &
+          npx wait-on http://localhost:5173
+        env:
+          CI: true
+          VITE_AUTH0_DOMAIN: ci-placeholder.us.auth0.com
+          VITE_AUTH0_CLIENT_ID: ci_placeholder_client_id
+          VITE_AUTH0_AUDIENCE: https://ci-placeholder.local/api
+
+      - name: Run TWD tests
+        uses: BRIKEV/twd-cli/.github/actions/run@main
+
+      - name: Display coverage
+        run: npm run collect:coverage:text
