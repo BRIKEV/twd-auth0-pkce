@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:ci": "CI=true VITE_COVERAGE=true vite",
+    "dev:ci": "CI=true VITE_COVERAGE=true NODE_ENV=production vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

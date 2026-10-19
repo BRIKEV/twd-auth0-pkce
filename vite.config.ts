@@ -22,6 +22,7 @@ export default defineConfig({
       exclude: ['node_modules', 'tests/'],
       extension: ['.ts', '.tsx'],
       requireEnv: true,
+      checkProd: false,
     }),
     twd({ 
       open: false, 
